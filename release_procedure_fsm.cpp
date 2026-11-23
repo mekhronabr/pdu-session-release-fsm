@@ -17,7 +17,6 @@ ReleaseProcedureFsm::ReleaseProcedureFsm(IServiceLinks &links)
 void ReleaseProcedureFsm::Namf_Communication_N1N2messageTransfer_Response(
     std::expected<n11::n1n2_transfer_cause, http2::status> cause) {
 
-  // ответ пришёл тогда, когда автомат его ожидает
   assert(m_state == state::n1n2_transfer_sent);
 
   if (!cause.has_value()) {
@@ -29,6 +28,7 @@ void ReleaseProcedureFsm::Namf_Communication_N1N2messageTransfer_Response(
     using enum n11::n1n2_transfer_cause;
   case N1_N2_TRANSFER_INITIATED:
     m_state = state::n1n2_transfer_ok_response_received;
+    m_links.StartTimer();
     break;
   case N1_MSG_NOT_TRANSFERRED:
   case FAILURE_CAUSE_UNSPECIFIED:
@@ -47,6 +47,7 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::nas_response) {
     return {};
   }
   case state::ngap_ok_received: {
+    m_links.StopTimer();
     m_links.Nsmf_PDUSession_SMContextStatusNotify(
       n11::sm_context_status::RELEASED);
     m_state = state::notification_sent;
@@ -66,6 +67,7 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::ngap_response) {
     return {};
   }
   case state::nas_ok_received: {
+    m_links.StopTimer();
     m_links.Nsmf_PDUSession_SMContextStatusNotify(
       n11::sm_context_status::RELEASED);
     m_state = state::notification_sent;
@@ -79,16 +81,17 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::ngap_response) {
 
 void ReleaseProcedureFsm::Nsmf_PDUSession_SMContextStatusNotify_Response() {
   assert(m_state == state::notification_sent);
-
-  // Здесь нам не интересен http статус, поэтому в функции нет соответствующего
-  // аргумента - всё равно SMF ничего сделать не может в данной ситуации
-
   m_state = state::done;
 }
 
 void ReleaseProcedureFsm::TimerExpired() {
-  // в первом варианте автомата не используется таймер
-  assert(false);
+  if (m_state == state::n1n2_transfer_ok_response_received || 
+    m_state == state::nas_ok_received || m_state == state::ngap_ok_received
+  ) {
+    m_links.Nsmf_PDUSession_SMContextStatusNotify(n11::sm_context_status::RELEASED);
+  }
+
+  m_state = state::done;
 }
 
 void ReleaseProcedureFsm::Timer3592Expired(bool last) {

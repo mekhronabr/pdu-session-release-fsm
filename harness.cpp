@@ -270,6 +270,77 @@ std::vector<std::string> testDoubleUpdateSMContext() {
   return problems;
 }
 
+std::vector<std::string> testTimerExpired() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::N1_N2_TRANSFER_INITIATED);
+  
+  fsm.TimerExpired();
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
+std::vector<std::string> testTimerExpiredWithNAS() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::N1_N2_TRANSFER_INITIATED);
+  
+  auto resNas = fsm.Nsmf_PDUSession_UpdateSMContext(n11::nas_response{});
+  
+  fsm.TimerExpired();
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
+std::vector<std::string> testTimerExpiredWithNGAP() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::N1_N2_TRANSFER_INITIATED);
+  
+  auto resGap = fsm.Nsmf_PDUSession_UpdateSMContext(n11::ngap_response{});
+  
+  fsm.TimerExpired();
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
+
 int main() {
   return runAll({
       {"Sunny case", testSunnyCase},
@@ -281,5 +352,8 @@ int main() {
       {"Not expected UpdateSMContext with NAS-response", testReturnFailureOnNASUpdateSMContext},
       {"Not expected UpdateSMContext with NGAP-response", testReturnFailureOnNGAPUpdateSMContext},
       {"Double UpdateSMContext", testDoubleUpdateSMContext},
+      {"Test TimerExpired function", testTimerExpired},
+      {"Test TimerExpired function after UpdateContext with NAS-response", testTimerExpiredWithNAS}, 
+      {"Test TimerExpired function after UpdateContext with NGAP-response", testTimerExpiredWithNGAP}, 
   });
 }
