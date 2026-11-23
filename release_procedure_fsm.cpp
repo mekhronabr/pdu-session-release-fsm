@@ -20,8 +20,11 @@ void ReleaseProcedureFsm::Namf_Communication_N1N2messageTransfer_Response(
   // ответ пришёл тогда, когда автомат его ожидает
   assert(m_state == state::n1n2_transfer_sent);
 
-  assert(cause.has_value()); // нет проблем с AMF
-
+  if (!cause.has_value()) {
+    m_state = state::done;
+    return;
+  }
+  
   switch (cause.value()) {
     using enum n11::n1n2_transfer_cause;
   case N1_N2_TRANSFER_INITIATED:

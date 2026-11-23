@@ -7,6 +7,7 @@
 
 #include "n11.hpp"
 #include "release_procedure_fsm.hpp"
+#include "http2.hpp"
 
 namespace {
 
@@ -150,11 +151,54 @@ std::vector<std::string> testFailureCauseUnspecifiedResponse() {
   return problems;
 }
 
+std::vector<std::string> testHTTPNotFoundErrorOnN1N2messageTransfer_Response() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      std::unexpected{http2::status::not_found});
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
+std::vector<std::string> testHTTPTimeoutErrorOnN1N2messageTransfer_Response() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      std::unexpected{http2::status::timeout});
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
 int main() {
   return runAll({
       {"Sunny case", testSunnyCase},
       {"GDB-UpdateSMContext first", testGDBUpdateSMContextFirst},
       {"N1N2messageTransfer response with N1_MSG_NOT_TRANSFERRED", testN1msgNotTransferedResponse},
       {"N1N2messageTransfer response with FAILURE_CAUSE_UNSPECIFIED", testFailureCauseUnspecifiedResponse},
+      {"N1N2messageTransfer response Not Found HTTP Error", testHTTPNotFoundErrorOnN1N2messageTransfer_Response},
+      {"N1N2messageTransfer response Timeout HTTP Error", testHTTPTimeoutErrorOnN1N2messageTransfer_Response}
+      
   });
 }
