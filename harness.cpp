@@ -58,35 +58,61 @@ int runAll(std::vector<Case> const &cases) {
 
 } // namespace
 
+std::vector<std::string> testSunnyCase() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::N1_N2_TRANSFER_INITIATED);
+
+  auto resNas = fsm.Nsmf_PDUSession_UpdateSMContext(n11::nas_response{});
+
+  auto resNgap = fsm.Nsmf_PDUSession_UpdateSMContext(n11::ngap_response{});
+
+  fsm.Nsmf_PDUSession_SMContextStatusNotify_Response();
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
+std::vector<std::string> testGDBUpdateSMContextFirst() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::N1_N2_TRANSFER_INITIATED);
+
+  auto resNgap = fsm.Nsmf_PDUSession_UpdateSMContext(n11::ngap_response{});
+
+  auto resNas = fsm.Nsmf_PDUSession_UpdateSMContext(n11::nas_response{});
+
+  fsm.Nsmf_PDUSession_SMContextStatusNotify_Response();
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
 int main() {
-
-  auto testSunnyCase = [] {
-    std::vector<std::string> problems;
-    ServiceLinksMock links;
-    
-    smf::ReleaseProcedureFsm fsm{links};
-
-    if (links.log.empty()) {
-      problems.push_back("N1N2messageTransfer wasn't called");
-    }
-
-    fsm.Namf_Communication_N1N2messageTransfer_Response(
-        n11::n1n2_transfer_cause::N1_N2_TRANSFER_INITIATED);
-
-    auto resNas = fsm.Nsmf_PDUSession_UpdateSMContext(n11::nas_response{});
-
-    auto resNgap = fsm.Nsmf_PDUSession_UpdateSMContext(n11::ngap_response{});
-
-    fsm.Nsmf_PDUSession_SMContextStatusNotify_Response();
-
-    if (!fsm.isDone()) {
-      problems.push_back("FSM hasn't finished working");
-    }
-
-    return problems;
-  };
-
   return runAll({
       {"Sunny case", testSunnyCase},
+      {"GDB-UpdateSMContext first", testGDBUpdateSMContextFirst},
   });
 }

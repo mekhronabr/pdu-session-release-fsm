@@ -38,6 +38,7 @@ private:
     n1n2_transfer_sent,
     n1n2_transfer_ok_response_received,
     nas_ok_received,
+    ngap_ok_received,
     notification_sent,
     done
   } m_state{state::initial};

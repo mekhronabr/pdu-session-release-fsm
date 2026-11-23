@@ -43,6 +43,12 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::nas_response) {
     m_state = state::nas_ok_received;
     return {};
   }
+  case state::gdb_ok_received: {
+    m_links.Nsmf_PDUSession_SMContextStatusNotify(
+        n11::sm_context_status::RELEASED);
+    m_state = state::notification_sent;
+    return {};
+  }
   default: {
     assert(false);
     return {};
@@ -53,6 +59,10 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::nas_response) {
 std::expected<void, n11::update_sm_context_error_cause>
 ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::ngap_response) {
   switch (m_state) {
+  case state::n1n2_transfer_ok_response_received: {
+    m_state = state::ngap_ok_received;
+    return {};
+  }
   case state::nas_ok_received: {
     m_links.Nsmf_PDUSession_SMContextStatusNotify(
         n11::sm_context_status::RELEASED);
