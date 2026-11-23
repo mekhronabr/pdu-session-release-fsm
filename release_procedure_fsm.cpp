@@ -28,10 +28,10 @@ void ReleaseProcedureFsm::Namf_Communication_N1N2messageTransfer_Response(
     m_state = state::n1n2_transfer_ok_response_received;
     break;
   case N1_MSG_NOT_TRANSFERRED:
-    assert(false);
-    break;
-  case FAILURE_CAUSE_UNSPECIFIED:;
-    assert(false);
+  case FAILURE_CAUSE_UNSPECIFIED:
+    m_links.Nsmf_PDUSession_SMContextStatusNotify(
+      n11::sm_context_status::RELEASED);
+    m_state = state::done;
     break;
   }
 }
@@ -43,9 +43,9 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::nas_response) {
     m_state = state::nas_ok_received;
     return {};
   }
-  case state::gdb_ok_received: {
+  case state::ngap_ok_received: {
     m_links.Nsmf_PDUSession_SMContextStatusNotify(
-        n11::sm_context_status::RELEASED);
+      n11::sm_context_status::RELEASED);
     m_state = state::notification_sent;
     return {};
   }
@@ -65,7 +65,7 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::ngap_response) {
   }
   case state::nas_ok_received: {
     m_links.Nsmf_PDUSession_SMContextStatusNotify(
-        n11::sm_context_status::RELEASED);
+      n11::sm_context_status::RELEASED);
     m_state = state::notification_sent;
     return {};
   }

@@ -110,9 +110,51 @@ std::vector<std::string> testGDBUpdateSMContextFirst() {
   return problems;
 }
 
+std::vector<std::string> testN1msgNotTransferedResponse() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::N1_MSG_NOT_TRANSFERRED);
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
+std::vector<std::string> testFailureCauseUnspecifiedResponse() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::FAILURE_CAUSE_UNSPECIFIED);
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
 int main() {
   return runAll({
       {"Sunny case", testSunnyCase},
       {"GDB-UpdateSMContext first", testGDBUpdateSMContextFirst},
+      {"N1N2messageTransfer response with N1_MSG_NOT_TRANSFERRED", testN1msgNotTransferedResponse},
+      {"N1N2messageTransfer response with FAILURE_CAUSE_UNSPECIFIED", testFailureCauseUnspecifiedResponse},
   });
 }
