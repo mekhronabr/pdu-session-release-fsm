@@ -191,6 +191,85 @@ std::vector<std::string> testHTTPTimeoutErrorOnN1N2messageTransfer_Response() {
   return problems;
 }
 
+std::vector<std::string> testReturnFailureOnNASUpdateSMContext() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+  auto resNas = fsm.Nsmf_PDUSession_UpdateSMContext(n11::nas_response{});
+
+  if (resNas.has_value()) {
+    problems.push_back("UpdateSMContext with NAS-response doesn't return error");
+  }
+
+  return problems;
+}
+
+std::vector<std::string> testReturnFailureOnNGAPUpdateSMContext() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+  
+  auto resNgap = fsm.Nsmf_PDUSession_UpdateSMContext(n11::ngap_response{});
+
+  if (resNgap.has_value()) {
+    problems.push_back("UpdateSMContext NGAP-response doesn't return error");
+  }
+
+  return problems;
+}
+
+std::vector<std::string> testDoubleUpdateSMContext() {
+  std::vector<std::string> problems;
+  ServiceLinksMock links;
+  
+  smf::ReleaseProcedureFsm fsm{links};
+
+  if (links.log.empty()) {
+    problems.push_back("N1N2messageTransfer wasn't called");
+  }
+
+  fsm.Namf_Communication_N1N2messageTransfer_Response(
+      n11::n1n2_transfer_cause::N1_N2_TRANSFER_INITIATED);
+
+  auto resNas = fsm.Nsmf_PDUSession_UpdateSMContext(n11::nas_response{});
+  if (!resNas.has_value()) {
+    problems.push_back("First UpdateSMContext with NAS-response returned error");
+  }
+
+  resNas = fsm.Nsmf_PDUSession_UpdateSMContext(n11::nas_response{});
+  if (resNas.has_value()) {
+    problems.push_back("Second UpdateSMContext with NAS-response didn't return error");
+  }
+
+  auto resNgap = fsm.Nsmf_PDUSession_UpdateSMContext(n11::ngap_response{});
+  if (!resNgap.has_value()) {
+    problems.push_back("First UpdateSMContext with NGAP-response returned error");
+  }
+
+  resNgap = fsm.Nsmf_PDUSession_UpdateSMContext(n11::ngap_response{});
+  if (resNgap.has_value()) {
+    problems.push_back("Second UpdateSMContext with NGAP-response didn't return error");
+  }
+
+  fsm.Nsmf_PDUSession_SMContextStatusNotify_Response();
+
+  if (!fsm.isDone()) {
+    problems.push_back("FSM hasn't finished working");
+  }
+
+  return problems;
+}
+
 int main() {
   return runAll({
       {"Sunny case", testSunnyCase},
@@ -198,7 +277,9 @@ int main() {
       {"N1N2messageTransfer response with N1_MSG_NOT_TRANSFERRED", testN1msgNotTransferedResponse},
       {"N1N2messageTransfer response with FAILURE_CAUSE_UNSPECIFIED", testFailureCauseUnspecifiedResponse},
       {"N1N2messageTransfer response Not Found HTTP Error", testHTTPNotFoundErrorOnN1N2messageTransfer_Response},
-      {"N1N2messageTransfer response Timeout HTTP Error", testHTTPTimeoutErrorOnN1N2messageTransfer_Response}
-      
+      {"N1N2messageTransfer response Timeout HTTP Error", testHTTPTimeoutErrorOnN1N2messageTransfer_Response},
+      {"Not expected UpdateSMContext with NAS-response", testReturnFailureOnNASUpdateSMContext},
+      {"Not expected UpdateSMContext with NGAP-response", testReturnFailureOnNGAPUpdateSMContext},
+      {"Double UpdateSMContext", testDoubleUpdateSMContext},
   });
 }

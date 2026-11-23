@@ -53,8 +53,7 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::nas_response) {
     return {};
   }
   default: {
-    assert(false);
-    return {};
+    return std::unexpected{n11::update_sm_context_error_cause::UNSPECIFIED_NF_FAILURE};
   }
   }
 }
@@ -73,8 +72,7 @@ ReleaseProcedureFsm::Nsmf_PDUSession_UpdateSMContext(n11::ngap_response) {
     return {};
   }
   default: {
-    assert(false);
-    return {};
+    return std::unexpected{n11::update_sm_context_error_cause::UNSPECIFIED_NF_FAILURE};
   }
   }
 }
